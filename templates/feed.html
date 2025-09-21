@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Art Feed</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header>
+    <div class="site-brand">
+      <a href="/" class="logo">Art Feed</a>
+    </div>
+    <div class="site-actions">
+      <input id="searchInput" class="search-bar" type="search" placeholder="Search artworks, ideas, artists..." />
+      <nav>
+        <a href="/">Feed</a>
+        <a href="/generate_art">Generate Art</a>
+        {% if user %}
+        <a href="/create" class="primary">Create</a>
+        <div class="user-menu" id="userMenu">
+          <button class="user-trigger">Hi, {{ user }} ↓</button>
+          <div class="menu">
+            <a href="/profile">Profile</a>
+            <a href="/following">Following</a>
+            <a href="/my_likes">My Likes</a>
+            <a href="/logout">Logout</a>
+          </div>
+        </div>
+        {% else %}
+        <a href="/login">Login</a>
+        <a href="/signup" class="primary">Sign Up</a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="container">
+      <h1>Explore</h1>
+      <div class="sub">Best selection of artworks and ideas, curated for inspiration.</div>
+      <div class="filters">
+        <button class="chip active" id="filterAll">All</button>
+        <button class="chip" id="filterFollowing">Followers Only</button>
+        <button class="chip" id="filterPaintings">Paintings</button>
+        <button class="chip" id="filterVases">Vases</button>
+        <button class="chip" id="filterArt">Art</button>
+        <button class="chip" id="filterCups">Cups</button>
+      </div>
+    </div>
+  </section>
+  <main>
+    <div class="container">
+      <div id="feed" class="gallery-grid"></div>
+    </div>
+  </main>
+
+  {% if user %}
+  <!-- Chat toggle button -->
+  <button id="chatToggle" title="Open Chat"
+    style="position: fixed; right: 16px; bottom: 16px; z-index: 10000; background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: white; border: none; border-radius: 50px; padding: 12px 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.25); cursor: pointer; font-weight: 700;">
+    💬 Chat
+  </button>
+
+  <!-- Slide-out chat panel -->
+  <aside id="chatPanel" aria-hidden="true"
+    style="position: fixed; top: 0; right: 0; height: 100%; width: 360px; max-width: 90vw; background: var(--panel); border-left: 1px solid var(--border); box-shadow: -12px 0 30px rgba(0,0,0,0.15); transform: translateX(100%); transition: transform 0.28s ease; z-index: 9999; display: flex; flex-direction: column;">
+    <div style="padding: 12px; border-bottom: 1px solid var(--border); display:flex; align-items:center; gap:8px;">
+      <strong style="font-size: 16px; color: var(--text-strong);">Chats</strong>
+      <span style="margin-left:auto;"><button id="chatClose" style="border:1px solid var(--border);background: rgba(0,0,0,0.06); color: var(--text); font-size:18px; cursor:pointer; border-radius:10px; padding:4px 10px;">×</button></span>
+    </div>
+    <div style="display:flex; flex:1; min-height:0;">
+      <div id="chatContacts" style="width: 40%; border-right: 1px solid var(--border); overflow:auto;">
+        <!-- contacts will populate here -->
+      </div>
+      <div style="flex:1; display:flex; flex-direction:column;">
+        <div id="chatHeader" data-me="{{ user }}" style="padding: 10px; border-bottom: 1px solid var(--border); font-weight: 700;">Select a contact</div>
+        <div id="chatMessages" style="flex:1; overflow:auto; padding: 10px;"></div>
+        <form id="chatForm" style="display:flex; gap:8px; padding:10px; border-top:1px solid var(--border);">
+          <input type="text" id="chatInput" placeholder="Type a message..." style="flex:1; padding:10px; border:1px solid var(--border); border-radius:10px;">
+          <button type="submit" class="primary">Send</button>
+        </form>
+      </div>
+    </div>
+  </aside>
+  {% endif %}
+
+  <footer>
+    <p>© {{ (now() if now else "") }} Art Feed • Explore and discover art</p>
+  </footer>
+
+  <script src="/static/feed.js"></script>
+  {% if user %}
+  <script src="/static/chat.js"></script>
+  {% endif %}
+  <script>
+    (function(){
+      var menu = document.getElementById('userMenu');
+      if (!menu) return;
+      var btn = menu.querySelector('.user-trigger');
+      btn.addEventListener('click', function(e){
+        e.stopPropagation();
+        menu.classList.toggle('open');
+      });
+      document.addEventListener('click', function(){
+        menu.classList.remove('open');
+      });
+    })();
+  </script>
+</body>
+</html>

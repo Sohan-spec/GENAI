@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Create Post</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header>
+    <div class="site-brand">
+      <a href="/" class="logo">Art Feed</a>
+    </div>
+    <div class="site-actions">
+      <input id="searchInput" class="search-bar" type="search" placeholder="Search artworks, ideas, artists..." />
+      <nav>
+        <a href="/">Feed</a>
+        <a href="/generate_art">Generate Art</a>
+        {% if user %}
+        <a href="/create" class="primary">Create</a>
+        <div class="user-menu" id="userMenu">
+          <button class="user-trigger">Hi, {{ user }} ↓</button>
+          <div class="menu">
+            <a href="/profile">Profile</a>
+            <a href="/following">Following</a>
+            <a href="/my_likes">My Likes</a>
+            <a href="/logout">Logout</a>
+          </div>
+        </div>
+        {% else %}
+        <a href="/login">Login</a>
+        <a href="/signup" class="primary">Sign Up</a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+
+  <div class="auth-container">
+    <h2 style="margin-top:0;">Create a new post</h2>
+    <form id="postForm" enctype="multipart/form-data" class="auth-form">
+      <label>Upload Images</label>
+      <input id="imageInput" type="file" name="image" accept="image/*" multiple>
+      <div id="previewGrid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap:12px; margin-top:12px;"></div>
+
+      <div class="field">
+        <label>Art name</label>
+        <input type="text" name="title" placeholder="e.g. The Starry Night">
+        <div class="help">A short, memorable name for your artwork.</div>
+      </div>
+
+      <div class="field">
+        <label>Art Category</label>
+        <select name="category" required style="padding: 16px 18px; border: 1px solid var(--border); border-radius: 10px; font-size: 18px; background: #ffffff; color: var(--text); width: 100%; box-sizing: border-box;">
+          <option value="">Select a category</option>
+          <option value="Paintings">Paintings</option>
+          <option value="Vases">Vases</option>
+          <option value="Art">Art</option>
+          <option value="Cups">Cups</option>
+          <option value="None">None</option>
+        </select>
+        <div class="help">Choose the type of art you're creating.</div>
+      </div>
+
+      <label>Describe Your Idea For AI Summary</label>
+      <textarea name="idea_text" rows="5" placeholder="Describe the composition, mood, and elements..."></textarea>
+
+      <label>Price</label>
+      <input type="text" name="price" placeholder="e.g. ₹2500">
+
+      <label>Contact</label>
+      <input type="text" name="contact" placeholder="email or phone">
+
+      <button type="submit" class="primary">Submit</button>
+    </form>
+    <p id="status" class="status-text"></p>
+  </div>
+
+  <script>
+  document.getElementById("postForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const res = await fetch("/create_post", {
+      method: "POST",
+      body: formData
+    });
+    const data = await res.json();
+    const status = document.getElementById("status");
+    status.textContent = data.message || (res.ok ? "Submitted" : "Error submitting");
+  });
+
+  // Dropzone, persistent preview, change/clear controls
+  // Multi-image preview grid
+  const input = document.getElementById('imageInput');
+  const grid = document.getElementById('previewGrid');
+  input.addEventListener('change', () => {
+    grid.innerHTML = '';
+    const files = Array.from(input.files || []);
+    files.forEach(file => {
+      const url = URL.createObjectURL(file);
+      const item = document.createElement('div');
+      item.style.border = '1px solid var(--border)';
+      item.style.borderRadius = '8px';
+      item.style.overflow = 'hidden';
+      item.style.background = '#151922';
+      const img = document.createElement('img');
+      img.src = url;
+      img.alt = 'preview';
+      img.style.width = '100%';
+      img.style.height = '120px';
+      img.style.objectFit = 'cover';
+      item.appendChild(img);
+      grid.appendChild(item);
+    });
+  });
+  </script>
+  <script>
+    (function(){
+      var menu = document.getElementById('userMenu');
+      if (!menu) return;
+      var btn = menu.querySelector('.user-trigger');
+      btn.addEventListener('click', function(e){
+        e.stopPropagation();
+        menu.classList.toggle('open');
+      });
+      document.addEventListener('click', function(){
+        menu.classList.remove('open');
+      });
+    })();
+  </script>
+</body>
+</html>

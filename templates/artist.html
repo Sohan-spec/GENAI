@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ artist }} • Profile</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header>
+    <div class="site-brand"><a href="/" class="logo">Art Feed</a></div>
+    <div class="site-actions">
+      <nav>
+        <a href="/">Feed</a>
+        {% if user %}
+        <a href="/create" class="primary">Create</a>
+        <div class="user-menu" id="userMenu">
+          <button class="user-trigger">Hi, {{ user }}</button>
+          <div class="menu">
+            <a href="/profile">Profile</a>
+            <a href="/following">Following</a>
+            <a href="/my_likes">My Likes</a>
+            <a href="/logout">Logout</a>
+          </div>
+        </div>
+        {% else %}
+        <a href="/login">Login</a>
+        <a href="/signup" class="primary">Sign Up</a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="container">
+      <h1>{{ artist }}</h1>
+      <div class="sub">Artist profile • Posts by {{ artist }}</div>
+      {% if artist_bio %}
+      <div class="sub" style="margin-top:6px; max-width: 800px;">{{ artist_bio }}</div>
+      {% endif %}
+      <form id="followForm" method="post" action="{{ '/api/unfollow' if following else '/api/follow' }}" style="margin-top:12px;">
+        <input type="hidden" name="artist" value="{{ artist }}">
+        <button type="submit" class="btn {{ 'ghost' if following else 'primary' }}">{{ 'Unfollow' if following else 'Follow' }}</button>
+      </form>
+    </div>
+  </section>
+
+  <main>
+    <div class="container">
+      <div class="gallery-grid">
+        {% for p in posts %}
+        <a class="card" href="/post/{{ p.id }}">
+          {% if p.image %}
+          <img src="{{ p.image }}" alt="art">
+          {% endif %}
+          <div class="card-body">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+              <div class="title">{{ p.title or 'Untitled' }}</div>
+              {% if user %}
+              <button class="like-btn" data-post-id="{{ p.id }}" title="Like" style="min-width:40px;height:36px;border:1px solid var(--border);border-radius:10px;background:#fff;color:#6b7280;cursor:pointer;">♡</button>
+              {% endif %}
+            </div>
+            <div class="pill-row">
+              <span class="pill artist"><span class="icon">👤</span>{{ p.artist }}</span>
+              {% if p.price %}
+              <span class="pill price"><span class="icon">💰</span>{{ p.price }}</span>
+              {% endif %}
+            </div>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p>© Art Feed</p>
+  </footer>
+
+  <script>
+    (function(){
+      var menu = document.getElementById('userMenu');
+      if (menu) {
+        var btn = menu.querySelector('.user-trigger');
+        btn.addEventListener('click', function(e){
+          e.stopPropagation();
+          menu.classList.toggle('open');
+        });
+        document.addEventListener('click', function(){ menu.classList.remove('open'); });
+      }
+    })();
+    const form = document.getElementById('followForm');
+    if (form) {
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fd = new FormData(form);
+        const res = await fetch(form.action, { method: 'POST', body: fd });
+        if (res.ok) { location.reload(); }
+        else { alert('Please log in to follow artists.'); }
+      });
+    }
+
+    // Likes on artist page
+    async function initArtistLikes() {
+      const btns = document.querySelectorAll('.like-btn');
+      if (!btns.length) return;
+      try {
+        const res = await fetch('/api/my_liked_ids');
+        const ids = res.ok ? await res.json() : [];
+        const set = new Set(Array.isArray(ids) ? ids : []);
+        btns.forEach(btn => {
+          const postId = parseInt(btn.getAttribute('data-post-id'), 10);
+          const liked = set.has(postId);
+          btn.textContent = liked ? '❤' : '♡';
+          btn.style.color = liked ? '#e11d48' : '#6b7280';
+          btn.title = liked ? 'Unlike' : 'Like';
+          btn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const isLiked = btn.textContent.trim() === '❤';
+            const url = isLiked ? '/api/unlike' : '/api/like';
+            const res2 = await fetch(url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: `post_id=${encodeURIComponent(postId)}`
+            });
+            if (res2.status === 401) { alert('Please log in to like posts.'); return; }
+            const data = await res2.json();
+            if (data && data.status === 'ok') {
+              const nowLiked = !isLiked;
+              btn.textContent = nowLiked ? '❤' : '♡';
+              btn.style.color = nowLiked ? '#e11d48' : '#6b7280';
+              btn.title = nowLiked ? 'Unlike' : 'Like';
+            }
+          });
+        });
+      } catch (e) { /* ignore */ }
+    }
+    initArtistLikes();
+  </script>
+</body>
+</html>
+
+

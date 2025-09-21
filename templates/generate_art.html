@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Generate Art</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header>
+    <div class="site-brand">
+      <a href="/" class="logo">Art Feed</a>
+    </div>
+    <div class="site-actions">
+      <input id="searchInput" class="search-bar" type="search" placeholder="Search artworks, ideas, artists..." />
+      <nav>
+        <a href="/">Feed</a>
+        <a href="/generate_art" class="primary">Generate Art</a>
+        {% if user %}
+        <a href="/create">Create</a>
+        <div class="user-menu" id="userMenu">
+          <button class="user-trigger">Hi, {{ user }} ↓</button>
+          <div class="menu">
+            <a href="/profile">Profile</a>
+            <a href="/following">Following</a>
+            <a href="/my_likes">My Likes</a>
+            <a href="/logout">Logout</a>
+          </div>
+        </div>
+        {% else %}
+        <a href="/login">Login</a>
+        <a href="/signup" class="primary">Sign Up</a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+  <div class="auth-container">
+    <h2>Generate Art</h2>
+    <form id="genArtForm" class="auth-form">
+      <label>Art Prompt</label>
+      <textarea name="prompt" rows="4" placeholder="Describe the subject and desired artistic style (not realistic). Example: 'Ink illustration of a fox under moonlight, watercolor wash, loose brush strokes.'"></textarea>
+      <label>Model</label>
+      <select name="model">
+        <!-- <option value="turbo" selected>turbo (fast)</option> -->
+        <option value="flux">flux</option>
+        <option value="magic">magic</option>
+      </select>
+      <div class="help">All generations are forced to artistic, stylized output (no photorealism).</div>
+      <button type="submit" class="primary">Generate</button>
+    </form>
+    <div id="result" style="margin-top:24px;"></div>
+  </div>
+  <script>
+    async function loadModels() {
+      const select = document.querySelector('select[name="model"]');
+      try {
+        const res = await fetch('/free_models');
+        const data = await res.json();
+        if (data && data.success && Array.isArray(data.models) && data.models.length) {
+          const current = select.value;
+          select.innerHTML = '';
+          data.models.forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = m.model || m;
+            opt.textContent = (m.model || m) + (m.provider ? ` (${m.provider})` : '');
+            select.appendChild(opt);
+          });
+          // try to keep previous selection
+          if ([...select.options].some(o => o.value === current)) {
+            select.value = current;
+          }
+        }
+      } catch (e) {
+        // silent fallback to default options
+      }
+    }
+    loadModels();
+    document.getElementById("genArtForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const prompt = form.prompt.value.trim();
+      const model = form.model.value;
+      if (!prompt) {
+        document.getElementById("result").innerHTML = "Please enter a prompt.";
+        return;
+      }
+      document.getElementById("result").innerHTML = "Generating... this may take a few seconds";
+      const res = await fetch("/generate_art_api", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({prompt, model})
+      });
+      const data = await res.json();
+      if (data.status === "ok") {
+        document.getElementById("result").innerHTML = `
+          <img src="${data.image}" alt="Generated Art" style="max-width:100%;border-radius:8px;border:1px solid #e5e7eb;" />
+          <p><b>Summary:</b> ${data.summary}</p>
+          <button onclick="navigator.clipboard.writeText('${data.image}')">Copy Image URL</button>
+          <p style="color:#6b7280;">You may copy and sell this generated art.</p>
+        `;
+      } else {
+        document.getElementById("result").innerHTML = "Error: " + (data.message || "Failed to generate art.");
+      }
+    });
+  </script>
+  <script>
+    (function(){
+      var menu = document.getElementById('userMenu');
+      if (!menu) return;
+      var btn = menu.querySelector('.user-trigger');
+      btn.addEventListener('click', function(e){
+        e.stopPropagation();
+        menu.classList.toggle('open');
+      });
+      document.addEventListener('click', function(){
+        menu.classList.remove('open');
+      });
+    })();
+  </script>
+</body>
+</html>

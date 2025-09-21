@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Profile</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header>
+    <div class="site-brand">
+      <a href="/" class="logo">Art Feed</a>
+    </div>
+    <div class="site-actions">
+      <input id="searchInput" class="search-bar" type="search" placeholder="Search artworks, ideas, artists..." />
+      <nav>
+        <a href="/">Feed</a>
+        <a href="/generate_art">Generate Art</a>
+        <a href="/create" class="primary">Create</a>
+        <div class="user-menu" id="userMenu">
+          <button class="user-trigger">Hi, {{ user }} ↓</button>
+          <div class="menu">
+            <a href="/profile">Profile</a>
+            <a href="/following">Following</a>
+            <a href="/my_likes">My Likes</a>
+            <a href="/logout">Logout</a>
+          </div>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main class="auth-page">
+    <div class="auth-container">
+      <h2>Profile</h2>
+      <form action="/profile" method="post" class="auth-form">
+        <label>Username</label>
+        <input type="text" value="{{ user }}" disabled>
+
+        <label>Email</label>
+        <input type="email" name="email" value="{{ email }}" required>
+
+        <label>Phone</label>
+        <input type="text" name="phone" value="{{ phone }}" placeholder="Optional">
+
+        <label>Bio</label>
+        <textarea name="bio" rows="4" placeholder="Tell people about yourself">{{ bio }}</textarea>
+
+        <label>New Password</label>
+        <input type="password" name="password" placeholder="Leave blank to keep current password">
+
+        <button type="submit">Save Changes</button>
+      </form>
+      
+      <div style="margin-top: 40px; padding-top: 30px; border-top: 2px solid var(--border);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h3 style="margin: 0; color: var(--text-strong);">My Posts</h3>
+          <button id="togglePosts" class="btn" style="background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600;">
+            Show My Posts
+          </button>
+        </div>
+        <div id="myPosts" style="display: none;">
+          <div id="postsContainer" class="gallery-grid" style="margin-top: 20px;"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+  <script>
+    (function(){
+      var menu = document.getElementById('userMenu');
+      if (!menu) return;
+      var btn = menu.querySelector('.user-trigger');
+      btn.addEventListener('click', function(e){
+        e.stopPropagation();
+        menu.classList.toggle('open');
+      });
+      document.addEventListener('click', function(){
+        menu.classList.remove('open');
+      });
+    })();
+
+    // My Posts functionality
+    let postsLoaded = false;
+    const toggleBtn = document.getElementById('togglePosts');
+    const postsContainer = document.getElementById('postsContainer');
+    const myPostsDiv = document.getElementById('myPosts');
+
+    toggleBtn.addEventListener('click', async function() {
+      if (!postsLoaded) {
+        try {
+          const response = await fetch('/api/my_posts');
+          const posts = await response.json();
+          
+          if (posts.length === 0) {
+            postsContainer.innerHTML = '<p style="text-align: center; color: var(--muted); padding: 40px;">You haven\'t created any posts yet.</p>';
+          } else {
+            postsContainer.innerHTML = posts.map(post => `
+              <a class="card" href="/post/${post.id}">
+                ${post.image ? `<img src="${post.image}" alt="art" />` : `<div style="height:220px;background:#f3f4f6"></div>`}
+                <div class="card-body">
+                  <div class="title">${post.title ? escapeHtml(post.title) : "Untitled"}</div>
+                  <div class="artist">
+                    👤 ${post.artist ? escapeHtml(post.artist) : "Unknown artist"}
+                  </div>
+                  <div class="category" style="margin-top: 4px; font-size: 14px; color: var(--accent); font-weight: 600;">
+                    🏷️ ${post.category ? escapeHtml(post.category) : "None"}
+                  </div>
+                  ${post.price ? `
+                    <div class="price">
+                      💰 ${escapeHtml(post.price)}
+                    </div>
+                  ` : ""}
+                </div>
+              </a>
+            `).join('');
+          }
+          postsLoaded = true;
+        } catch (error) {
+          console.error('Error loading posts:', error);
+          postsContainer.innerHTML = '<p style="text-align: center; color: #e74c3c; padding: 40px;">Error loading posts. Please try again.</p>';
+        }
+      }
+      
+      if (myPostsDiv.style.display === 'none') {
+        myPostsDiv.style.display = 'block';
+        toggleBtn.textContent = 'Hide My Posts';
+      } else {
+        myPostsDiv.style.display = 'none';
+        toggleBtn.textContent = 'Show My Posts';
+      }
+    });
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+  </script>
+</body>
+</html>
+
+

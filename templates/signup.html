@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sign Up</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body class="auth-page">
+    <div class="auth-container">
+        <h2>Create an account</h2>
+        <form action="/signup" method="post" class="auth-form" id="signupForm">
+            <label>Username</label>
+            <input type="text" name="username" required>
+
+            <label>Email</label>
+            <input type="email" name="email" required>
+
+            <label>Phone</label>
+            <input type="text" name="phone" placeholder="Optional">
+
+            <label>Bio</label>
+            <textarea name="bio" rows="3" placeholder="Tell people about yourself (optional)"></textarea>
+
+            <label>Password</label>
+            <div class="password-field">
+                <input type="password" name="password" id="signupPassword" required>
+                <button type="button" class="toggle-pass" data-target="signupPassword">Show</button>
+            </div>
+
+            <button type="submit">Sign Up</button>
+        </form>
+        <p class="auth-alt">Already have an account? <a href="/login">Log in</a></p>
+    </div>
+    <script src="/static/auth.js"></script>
+</body>
+</html>
+

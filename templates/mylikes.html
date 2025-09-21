@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>My Likes</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header>
+    <div class="site-brand">
+      <a href="/" class="logo">Art Feed</a>
+    </div>
+    <div class="site-actions">
+      <input id="searchInput" class="search-bar" type="search" placeholder="Search artworks, ideas, artists..." />
+      <nav>
+        <a href="/">Feed</a>
+        <a href="/generate_art">Generate Art</a>
+        {% if user %}
+        <a href="/create">Create</a>
+        <div class="user-menu" id="userMenu">
+          <button class="user-trigger">Hi, {{ user }} ↓</button>
+          <div class="menu">
+            <a href="/profile">Profile</a>
+            <a href="/following">Following</a>
+            <a href="/my_likes" class="primary">My Likes</a>
+            <a href="/logout">Logout</a>
+          </div>
+        </div>
+        {% else %}
+        <a href="/login">Login</a>
+        <a href="/signup" class="primary">Sign Up</a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      <h1>My Likes</h1>
+      <div id="likesGrid" class="gallery-grid" style="margin-top: 16px;"></div>
+    </div>
+  </main>
+
+  <script>
+    (function(){
+      var menu = document.getElementById('userMenu');
+      if (!menu) return;
+      var btn = menu.querySelector('.user-trigger');
+      btn.addEventListener('click', function(e){
+        e.stopPropagation();
+        menu.classList.toggle('open');
+      });
+      document.addEventListener('click', function(){
+        menu.classList.remove('open');
+      });
+    })();
+
+    async function loadLikes() {
+      const grid = document.getElementById('likesGrid');
+      try {
+        const res = await fetch('/api/my_likes');
+        if (!res.ok) {
+          grid.innerHTML = '<p class="muted">Please log in to view your liked posts.</p>';
+          return;
+        }
+        const posts = await res.json();
+        if (!posts || posts.length === 0) {
+          grid.innerHTML = '<p class="muted" style="padding: 24px;">No liked posts yet. Tap the heart on artworks you like in the feed.</p>';
+          return;
+        }
+        grid.innerHTML = posts.map(p => `
+          <a class="card" href="/post/${p.id}">
+            ${p.image ? `<img src="${p.image}" alt="art" />` : `<div style="height:220px;background:#f3f4f6"></div>`}
+            <div class="card-body">
+              <div class="title">${escapeHtml(p.title || 'Untitled')}</div>
+              <div class="artist">👤 ${escapeHtml(p.artist || 'Unknown')}</div>
+              <div class="category" style="margin-top: 4px; font-size: 14px; color: var(--accent); font-weight: 600;">🏷️ ${escapeHtml(p.category || 'None')}</div>
+              ${p.price ? `<div class="price">💰 ${escapeHtml(p.price)}</div>` : ''}
+            </div>
+          </a>
+        `).join('');
+      } catch (e) {
+        grid.innerHTML = '<p class="muted" style="padding: 24px;">Error loading likes.</p>';
+      }
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    loadLikes();
+  </script>
+</body>
+</html>

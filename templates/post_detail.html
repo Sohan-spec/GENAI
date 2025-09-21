@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ post.title or 'Artwork' }}</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header>
+    <div class="site-brand">
+      <a href="/" class="logo">Art Feed</a>
+    </div>
+    <div class="site-actions">
+      <input id="searchInput" class="search-bar" type="search" placeholder="Search artworks, ideas, artists..." />
+      <nav>
+        <a href="/">Feed</a>
+        <a href="/generate_art">Generate Art</a>
+        {% if user %}
+        <a href="/create" class="primary">Create</a>
+        <div class="user-menu" id="userMenu">
+          <button class="user-trigger">Hi, {{ user }} ↓</button>
+          <div class="menu">
+            <a href="/profile">Profile</a>
+            <a href="/following">Following</a>
+            <a href="/my_likes">My Likes</a>
+            <a href="/logout">Logout</a>
+          </div>
+        </div>
+        {% else %}
+        <a href="/login">Login</a>
+        <a href="/signup" class="primary">Sign Up</a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+
+  <main style="padding:24px; max-width: 1080px; margin: 0 auto;">
+    <section style="border:1px solid var(--border); border-radius:16px; overflow:hidden; background: var(--panel); box-shadow: var(--shadow);">
+      {% if post.images and post.images|length > 0 %}
+      <div>
+        <img src="{{ post.images[0] }}" alt="art" style="width:100%; max-height:560px; object-fit:cover; display:block; background:#f3efe7;">
+      </div>
+      {% elif post.image %}
+      <div>
+        <img src="{{ post.image }}" alt="art" style="width:100%; max-height:560px; object-fit:cover; display:block; background:#f3efe7;">
+      </div>
+      {% endif %}
+      <div style="padding:12px 18px 0 18px;">
+        <!-- Artwork Title -->
+        <h1 style="margin:0 0 8px 0; font-size:28px; letter-spacing:.2px; color: var(--text-strong);">{{ post.title or 'Untitled' }}</h1>
+        
+        <!-- Artist, Category, and Price below the title -->
+        <div style="margin-top:6px;">
+          <p style="font-size:16px; font-weight:800;">
+            Artist: {{ post.artist or 'Unknown artist' }}
+            {% if user and post.artist != user %}
+              <button id="followBtn" data-artist="{{ post.artist }}">
+                {% if following %}Unfollow{% else %}Follow{% endif %}
+              </button>
+            {% endif %}
+            {% if user %}
+            <span id="likeCount" style="margin-left:10px; color:#6b7280; font-weight:600;">{{ post.like_count or 0 }}</span>
+            <button id="likeBtn" data-post-id="{{ post.id }}" title="Like" style="margin-left:6px; min-width:48px;height:44px;border:1px solid var(--border);border-radius:12px;background:#fff;color:#6b7280;cursor:pointer;font-size:22px;line-height:1;">♡</button>
+            {% endif %}
+          </p>
+          <p style="font-size:16px; font-weight:800; color: var(--accent);">Category: {{ post.category or 'None' }}</p>
+          {% if post.price %}
+          <p style="font-size:16px; font-weight:800;">Price: ${{ post.price }}</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <div style="padding:18px 18px 22px 18px;">
+        <h3 style="margin:0 0 8px 0;">Description</h3>
+        <p style="white-space: pre-line; color: var(--text);">{{ post.story or '' }}</p>
+        <div style="height:12px;"></div>
+        <h3 style="margin:0 0 8px 0;">Contact</h3>
+        <a href="phone" style="color: var(--muted);"><strong>Phone:</strong> {{ post.contact or 'Not provided' }}</a>
+        <a href="post.email" style="color: var(--muted);"><strong>Email:</strong> {{ post.email or 'Not provided' }}</a>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (function(){
+      var menu = document.getElementById('userMenu');
+      if (!menu) return;
+      var btn = menu.querySelector('.user-trigger');
+      btn.addEventListener('click', function(e){
+        e.stopPropagation();
+        menu.classList.toggle('open');
+      });
+      document.addEventListener('click', function(){
+        menu.classList.remove('open');
+      });
+    })();
+    
+    const followBtn = document.getElementById("followBtn");
+    if(followBtn) {
+      followBtn.addEventListener("click", async () => {
+        const artist = followBtn.dataset.artist;
+        const action = followBtn.textContent.trim().toLowerCase() === "follow" ? "follow" : "unfollow";
+        const resp = await fetch(`/api/${action}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: `artist=${encodeURIComponent(artist)}`
+        });
+        const data = await resp.json();
+        if(data.status === "ok") {
+          followBtn.textContent = action === "follow" ? "Unfollow" : "Follow";
+        } else {
+          alert(data.message || "Error");
+          if (likeCountEl) { likeCountEl.textContent = String(parseInt(likeCountEl.textContent||'0',10) || 0); }
+        }
+      });
+    }
+
+    // Like button logic for detail page
+    const likeBtn = document.getElementById('likeBtn');
+    const likeCountEl = document.getElementById('likeCount');
+    const postId = likeBtn ? parseInt(likeBtn.getAttribute('data-post-id'), 10) : null;
+    async function initLikeState() {
+      if (!likeBtn || !postId) return;
+      try {
+        const res = await fetch('/api/my_liked_ids');
+        if (!res.ok) return; // not logged in
+        const ids = await res.json();
+        if (Array.isArray(ids) && ids.includes(postId)) {
+          likeBtn.textContent = '❤';
+          likeBtn.style.color = '#e11d48';
+          likeBtn.title = 'Unlike';
+        }
+      } catch (e) { /* ignore */ }
+    }
+    if (likeBtn) {
+      likeBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const isLiked = likeBtn.textContent.trim() === '❤';
+        try {
+          const url = isLiked ? '/api/unlike' : '/api/like';
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `post_id=${encodeURIComponent(postId)}`
+          });
+          if (res.status === 401) { alert('Please log in to like posts.'); return; }
+          const data = await res.json();
+          if (data && data.status === 'ok') {
+            const nowLiked = !isLiked;
+            likeBtn.textContent = nowLiked ? '❤' : '♡';
+            likeBtn.style.color = nowLiked ? '#e11d48' : '#6b7280';
+            likeBtn.title = nowLiked ? 'Unlike' : 'Like';
+            if (likeCountEl) {
+              const current = parseInt(likeCountEl.textContent || '0', 10) || 0;
+              likeCountEl.textContent = String(current + (nowLiked ? 1 : -1));
+            }
+          }
+        } catch (err) { /* ignore */ }
+      });
+      initLikeState();
+    }
+  </script>
+  
+</body>
+</html>

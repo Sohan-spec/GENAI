@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+</head>
+<body class="auth-page">
+    <div class="auth-container">
+        <h2>Welcome back</h2>
+        <form action="/login" method="post" class="auth-form" id="loginForm">
+            <label>Username</label>
+            <input type="text" name="username" required>
+
+            <label>Password</label>
+            <div class="password-field">
+                <input type="password" name="password" id="loginPassword" required>
+                <button type="button" class="toggle-pass" data-target="loginPassword">Show</button>
+            </div>
+
+            <button type="submit">Login</button>
+        </form>
+        <p class="auth-alt">Don't have an account? <a href="/signup">Sign Up</a></p>
+    </div>
+    <script src="/static/auth.js"></script>
+</body>
+</html>
